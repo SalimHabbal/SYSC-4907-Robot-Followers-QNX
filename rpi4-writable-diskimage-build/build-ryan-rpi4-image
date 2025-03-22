@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "Generating root partition..."
+mkqnx6fsimg config/root_partition.build output/root.part
+
+echo "Generating IFS..."
+mkifs -rfiles/qnx-bsp -o output config/ifs.build output/ifs.bin
+mkfatfsimg config/ifs_partition.build output/ifs.part
+
+echo "Calculating number of disk sectors..."
+SECTORS=10
+for partition in $(ls output/*.part); do
+    SECTORS=$(( $SECTORS + (($(wc -c < $partition) + 511) / 512) ))
+done
+sed "s/<SECTORS>/$SECTORS/" config/disk.layout.TEMPLATE > config/disk.layout
+
+echo "Building disk image..."
+diskimage -c config/disk.layout -o output/disk.image

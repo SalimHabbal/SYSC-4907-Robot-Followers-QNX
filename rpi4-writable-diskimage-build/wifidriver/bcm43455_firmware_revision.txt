@@ -1,0 +1,10 @@
+#####################################################################################
+# This file contains firmware revision information for the current package release.
+# Base release firmware file names do not contain version information.
+#####################################################################################
+
+6/10/2021
+firmware version: firmware.bcm43455.default.bin = cyfmac43455-sdio.bin
+default CLMBlob: bcm43455.default.clm_blob = cyfmac43455-sdio.clm_blob
+default nvram for Raspberry Pi4: nvram.bcm43455.rpi4.default.txt = brcmfmac43455-sdio.txt
+bcm43455_firmware_pkg.tar = firmware release for version 7.45.234 (FragAttacks), default clm_blob and nvram files

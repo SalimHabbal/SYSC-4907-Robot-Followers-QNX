@@ -1,0 +1,13 @@
+[num_sectors=262144]
+[search=files/firmware:output]
+ifs-rpi4-ryan.bin=ifs.bin
+bcm2711-rpi-4-b.dtb
+config.txt
+fixup4cd.dat
+fixup4.dat
+fixup4db.dat
+fixup4x.dat
+start4cd.elf
+start4db.elf
+start4.elf
+start4x.elf

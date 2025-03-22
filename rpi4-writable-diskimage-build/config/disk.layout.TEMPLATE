@@ -1,0 +1,4 @@
+[sector_size=512 cylinders=<SECTORS> sectors_per_track=1 heads=1 start_at_cylinder=1]
+[partition=1 boot=true type=0x0c ] "output/ifs.part"
+[partition=2 boot=false type=178 ] "output/root.part"
+

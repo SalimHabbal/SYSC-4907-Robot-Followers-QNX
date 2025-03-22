@@ -1,0 +1,83 @@
+## [num_sectors=14680064]    # 7G (512B sectors)
+[num_sectors=4194304]    # 2G (512B sectors)
+#[num_sectors=131072]    # 64M (512B sectors)
+[-optional]
+
+
+[uid=0 gid=0 dperms=755 type=dir] /
+[uid=0 gid=0 dperms=755 type=dir] /lib
+[uid=0 gid=0 dperms=755 type=dir] /lib/dll
+[uid=0 gid=0 dperms=755 type=dir] /xbin
+[uid=0 gid=0 dperms=755 type=dir] /etc
+[uid=0 gid=0 dperms=755 type=dir] /home
+
+[uid=0 gid=0 dperms=755 perms=644]
+
+[uid=0 gid=0 dperms=755 type=dir] /etc/init.d
+[uid=0 gid=0 dperms=755 type=dir] /etc/ssh
+
+
+########
+##VI
+# text editor used in unix like OS's, supports QNX 
+########
+
+[search=${QNX_TARGET}/aarch64le/bin] /usr/bin/vi=vi
+
+#######################################
+##WIFI FUNCTIONALITY
+#specifies a path that points to the specific file that is relevant to the functionality we need
+##################################### 
+[search=${QNX_TARGET}/aarch64le/lib/dll] /lib/dll/devnp-qwdi-2.9_bcm4339-rpi4.so=devnp-qwdi-2.9_bcm4339-rpi4.so
+[search=./wifidriver] /etc/hotspot/firmware.bin=firmware.bcm43455.default.bin
+[search=./wifidriver] /etc/hotspot/nvram.txt=nvram.bcm43455.rpi4.default.txt
+[search=./wifidriver] /etc/hotspot/firmware.clm_blob=bcm43455.default.clm_blob
+
+[search=${QNX_TARGET}/aarch64le/usr/sbin] /usr/sbin/wpa_cli=wpa_cli-2.9
+[search=${QNX_TARGET}/aarch64le/usr/sbin] /usr/sbin/wpa_passphrase=wpa_passphrase-2.9
+[perms=755 search=${QNX_TARGET}/aarch64le/usr/sbin] /usr/sbin/wpa_supplicant=wpa_supplicant-2.9
+
+/usr/sbin/wpa_supplicant.conf=files/wifi/wpa_supplicant.conf
+
+[perms=755]/etc/init.d/20-wifi {
+mount -T io-pkt -o fw=/etc/hotspot/firmware.bin,nvram=/etc/hotspot/nvram.txt,clm_blob=/etc/hotspot/firmware.clm_blob,,sdio_baseaddr=0xfe300000,sdio_irq=158,sdio_verbose=1,drv_supp=3,key_delay=5 /lib/dll/devnp-qwdi-2.9_bcm4339-rpi4.so
+
+/usr/sbin/wpa_supplicant -D qwdi -i bcm0 -c /usr/sbin/wpa_supplicant.conf &
+
+sleep 3
+
+dhclient bcm0 &
+}
+
+
+#############################################
+## SSH
+#############################################
+[perms=444] /etc/ssh/sshd_config={
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+AuthorizedKeysFile	.ssh/authorized_keys
+UsePAM no
+PermitUserEnvironment yes
+# Allowing root login via a password is generally undesirable. If you use theS
+# --ssh-ident option this will be disabled and root will be able to log in
+# by means of an ssh identity file.
+PermitRootLogin yes
+PidFile none
+Subsystem	sftp	/usr/sbin/sftp-server
+}
+
+[perms=400] /etc/ssh/ssh_host_rsa_key=files/ssh/ssh_host_rsa_key
+[perms=400] /etc/ssh/ssh_host_ed25519_key=files/ssh/ssh_host_ed25519_key
+[dperms=755 type=dir] var/chroot/sshd
+[dperms=700 type=dir] var/ssh
+[perms=755 search=${QNX_TARGET}/aarch64le]/usr/sbin/sftp-server=usr/libexec/sftp-server
+[perms=755 search=${QNX_TARGET}/aarch64le]/usr/sbin/sshd=usr/sbin/sshd
+[perms=755 search=${QNX_TARGET}/aarch64le/usr/bin]/usr/bin/ssh=ssh
+[perms=755 search=${QNX_TARGET}/aarch64le/usr/bin]/usr/bin/scp=scp
+
+[perms=755]/etc/init.d/10-sshd {
+# It would be nice to first check whether sshd is running.
+# But these are just basic startup scripts to get going!
+/usr/sbin/sshd
+}
