@@ -1,16 +1,38 @@
-# QNX Neutrino 7.1 for Raspberry Pi 4
+# QNX 7.1 for Raspberry Pi 4
 
-![QNX Logo](https://www.qnx.com/content/dam/qnx/images/logos/qnx-logo-black.svg) <!-- Replace with a local asset if available, or keep generic -->
 
-This repository contains the build scripts and configuration files to generate a bootable QNX 7.1 disk image for the Raspberry Pi 4. It is designed to create a custom IFS (Image Filesystem) and a writable root filesystem.
+This repository contains the build scripts and configuration files to generate a bootable QNX 7.1 disk image for the Raspberry Pi 4. It was developed as part of the **Robot Followers Capstone Project** to create a custom, modular operating system environment.
 
 ## 🚀 Overview
 
-The build process automates the creation of a disk image containing:
--   **IFS Partition**: Holds the QNX OS image (kernel, startup, procnto, drivers).
--   **Root Partition**: A writable QNX6 filesystem for user data and additional binaries.
+The project focuses on creating a lean, efficient, and customized QNX OS image. The build system automates the generation of:
+-   **IFS Partition**: Holds the QNX OS image (kernel, startup, drivers).
+-   **Root Partition**: A writable QNX filesystem for user data and additional binaries.
 
-The resulting `disk.image` can be flashed directly to an SD card.
+The resulting `disk.image` is ready to be flashed to an SD card for the Raspberry Pi 4.
+
+## ✨ Key Features & Implementation
+
+This custom build integrates several critical functionalities to support embedded development and remote telemetry.
+
+### 1. VI Text Editor Integration
+To enable on-device file editing without rebuilding the image, the **VI text editor** was integrated directly into the build.
+-   **Implementation**: Mapped `/usr/bin/vi` in the `root_partition.build` file.
+-   **Benefit**: Allows for quick configuration changes and script editing directly on the RPi4 terminal.
+
+### 2. Wi-Fi Connectivity
+Robust wireless networking was implemented to support remote control and future 5G integration.
+-   **Startup Sequence**: A custom script (`/etc/init.d/20-wifi`) handles the connection process:
+    1.  **Driver Loading**: Loads `devnp-qwdi...so` with firmware and NVRAM settings.
+    2.  **Authentication**: Starts `wpa_supplicant` in the background with a 3-second delay to prevent race conditions.
+    3.  **DHCP**: Runs `dhclient` only after the interface is up to ensure a valid IP address is obtained.
+-   **Configuration**: Uses `wpa_supplicant.conf` for network credentials.
+
+### 3. SSH Remote Access
+SSH (Secure Shell) is enabled for headless development and monitoring.
+-   **Security**: configured with `RSA` and `ED25519` host keys (read-only permissions).
+-   **Access**: `PermitRootLogin` is enabled for development convenience.
+-   **Components**: Includes `sshd` (server), `ssh` (client), and `scp` (file transfer).
 
 ## 🛠 Prerequisites
 
@@ -19,11 +41,8 @@ Before building, ensure you have the following installed and configured:
 -   **QNX Software Development Platform (SDP) 7.1**
 -   **QNX Aarch64 Toolchain** (part of SDP 7.1)
 -   **Required Utilities** (must be in your PATH):
-    -   `mkifs`: To build the Image Filesystem.
-    -   `mkqnx6fsimg`: To create the QNX6 root filesystem image.
-    -   `mkfatfsimg`: To create the FAT partition image.
-    -   `diskimage`: To assemble the final disk image.
-    -   `sed`, `wc`: Standard Unix utilities.
+    -   `mkifs`, `mkqnx6fsimg`, `mkfatfsimg`, `diskimage`
+    -   `sed`, `wc`
 
 > [!NOTE]
 > Ensure your `QNX_TARGET` and `QNX_HOST` environment variables are correctly set.
@@ -35,25 +54,10 @@ Before building, ensure you have the following installed and configured:
 ├── build-rpi4-image       # Main build script
 └── config/                # Configuration files
     ├── ifs.build          # IFS buildfile (startup, drivers, binaries)
-    ├── root_partition.build # Root filesystem buildfile
+    ├── root_partition.build # Root filesystem buildfile (VI, WiFi script, SSH config)
     ├── disk.layout.TEMPLATE # Template for the disk partition layout
-    ├── ifs_partition.build # FAT partition config for IFS
     └── ...
 ```
-
-## ⚙️ Configuration
-
-### IFS Build (`config/ifs.build`)
-Defines the contents of the bootable OS image. Key sections include:
--   **Startup**: `startup-bcm2711-rpi4` with arguments for debug console (`miniuart` or `pl011`).
--   **Drivers**: Serial, I2C, SPI, SDMMC, Network (Genet), USB (XHCI), Audio.
--   **Binaries**: Common utilities (`ls`, `cp`, `pidin`, etc.) and libraries.
--   **Scripts**: `.script` section defines the boot sequence (starting services, drivers, mounting filesystems).
-
-### Root Partition (`config/root_partition.build`)
-Defines the structure of the writable root filesystem.
--   **Directories**: Creates standard hierarchy (`/etc`, `/home`, `/var`, etc.).
--   **Files**: Includes configuration files (WiFi, SSH) and additional binaries not in the IFS.
 
 ## 🔨 Usage
 
@@ -67,39 +71,31 @@ Defines the structure of the writable root filesystem.
     ```bash
     ./build-rpi4-image
     ```
+    This generates `output/disk.image`.
 
-    The script will:
-    -   Generate the root partition image (`output/root.part`).
-    -   Generate the IFS image (`output/ifs.bin`) and partition (`output/ifs.part`).
-    -   Calculate the required disk size.
-    -   Create the final disk image (`output/disk.image`).
+3.  **Flash the image (Linux Example):**
+    Insert your SD card and identify the device (e.g., `/dev/sda` or `/dev/mmcblk0`).
+    > [!WARNING]
+    > Be extremely careful with the `dd` command. Writing to the wrong device will destroy data.
 
-3.  **Flash the image:**
-    Use `dd` or a tool like Etcher to write `output/disk.image` to your SD card.
     ```bash
-    # Example (BE CAREFUL with the device path!)
-    sudo dd if=output/disk.image of=/dev/sdX bs=4M status=progress
+    # Replace /dev/sdX with your actual SD card device
+    sudo dd if=output/disk.image of=/dev/sdX bs=1M status=progress
     ```
+
+4.  **Boot:**
+    Insert the SD card into the RPi4 and power it on. You can connect via Serial (UART) or wait for it to connect to Wi-Fi (if configured) and SSH in.
 
 ## 🔌 Hardware Support
 
 | Feature | Driver / Utility | Status |
 | :--- | :--- | :--- |
-| **UART** | `devc-serminiuart`, `devc-serpl011` | ✅ Supported |
-| **I2C** | `i2c-bcm2711` | ✅ Supported |
-| **SPI** | `spi-master` | ✅ Supported |
-| **SD Card** | `devb-sdmmc-bcm2711` | ✅ Supported |
+| **UART** | `devc-serminiuart` | ✅ Supported |
+| **Wi-Fi** | `devnp-qwdi...` (BCM43455) | ✅ Integrated & Scripted |
+| **SSH** | `sshd` (OpenSSH) | ✅ Integrated |
+| **Text Editor** | `vi` | ✅ Integrated |
 | **Ethernet** | `devnp-genet.so` | ✅ Supported |
-| **WiFi** | `devnp-qwdi...` (BCM43455) | ✅ Configured |
 | **USB** | `devu-hcd-bcm2711-xhci.so` | ✅ Supported |
-| **Audio** | `io-audio` (PWM / PCM512x) | ✅ Supported |
-| **GPIO** | `gpio-bcm2711` | ✅ Supported |
-
-## 📝 Customization
-
--   **Change Debug Console**: Edit `config/ifs.build` to switch between `miniuart` (default) and `pl011`.
--   **Add Files**: Add binaries or files to `config/ifs.build` (for read-only fast access) or `config/root_partition.build` (for writable storage).
--   **WiFi Config**: Edit `files/wifi/wpa_supplicant.conf` (referenced in build files) to set your network credentials.
 
 ---
 *Generated for SYSC 4907 Robot Followers Project*
