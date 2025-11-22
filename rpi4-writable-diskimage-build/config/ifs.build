@@ -547,7 +547,7 @@ name=bcm2711_pwm
 
 
 ###########################################################################
-# Ryan: additional commands
+# Additional commands
 ###########################################################################
 
 /bin/ability=ability
@@ -824,7 +824,7 @@ name=bcm2711_pwm
 
 
 ## ###########################################################################
-## # Ryan: setup ssh
+## # Ssh
 ## ###########################################################################
 ## [search=../../ssh]/usr/libexec/sftp-server=sftp-server
 ## [search=../../ssh]/etc/ssh/sshd_config=sshd_config
@@ -838,7 +838,7 @@ name=bcm2711_pwm
 
 
 ###########################################################################
-# Ryan: custom startup script, e.g. mount writable root filesystem
+# Custom startup script, e.g. mount writable root filesystem
 ###########################################################################
 /etc/rc {
 if [[ -e /dev/sd0t178 ]]; then
